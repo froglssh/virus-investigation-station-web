@@ -142,6 +142,10 @@ figcaption{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:
 .ltext ul{margin:0 0 12px;padding-left:1.2em} .ltext li{margin-bottom:6px}
 .ltext b.k1{color:var(--g1)} .ltext b.k2{color:var(--accent)} .ltext b.k3{color:var(--g3)}
 .lnav{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
+.lhome{position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;margin-bottom:6px;background:var(--ground)}
+.lhome .homebtn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--accent);color:var(--accent);border-radius:999px;padding:6px 16px;font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);transition:background .15s,color .15s}
+.lhome .homebtn:hover{background:var(--accent);color:var(--accent-ink)}
+.lhome .lhtitle{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.04em}
 .dots{display:flex;gap:6px}
 .dots button{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--line);background:var(--surface);font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--ink-3)}
 .dots button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
@@ -315,7 +319,7 @@ table.sum td:first-child{text-align:center}
   <div class="tprow">
     <span class="brand">病毒偵查站</span>
     <span class="crumb" id="crumb"></span>
-    <button class="linkbtn" id="to-learn">回圖解教學</button>
+    <button class="linkbtn" id="to-learn">回圖解教學</button><button class="linkbtn" type="button" data-gohome style="margin-left:14px" title="回到首頁">🏠 回首頁</button>
   </div>
   <div class="track" id="track" aria-label="關卡選擇"></div>
   <div class="quiznav"><label for="q-jump">直接選題</label><select id="q-jump" aria-label="直接選擇關卡"></select><span id="nav-status" aria-live="polite"></span><button class="linkbtn" id="finish-top" type="button">診斷卡</button></div>
@@ -353,6 +357,7 @@ table.sum td:first-child{text-align:center}
     </div>
   </section>
   <section id="learn" class="hidden"><div class="learn">
+    <div class="lhome"><button class="homebtn" type="button" data-gohome title="回到首頁">🏠 回首頁</button><span class="lhtitle">圖解教學</span></div>
     <div class="lcard" id="lcard"></div>
     <div class="lnav">
       <button class="btn ghost" id="l-prev">← 上一張</button>
@@ -929,7 +934,7 @@ function finish(){
     <div class="report-actions"><span class="barmsg">可截圖診斷卡交給老師。</span>
       <button class="btn ghost" id="relearn">回圖解教學</button>
       <button class="btn" id="resume-quiz">${pending?'繼續未完成題':'返回關卡'}</button>
-      <button class="btn ghost" id="again">重新挑戰全部</button></div></div>`;
+      <button class="btn ghost" id="again">重新挑戰全部</button><button class="btn ghost" type="button" data-gohome style="margin-left:10px">🏠 回首頁</button></div></div>`;
   el('done').classList.remove('hidden');drawTrack();
   el('again').onclick=()=>{ST={idx:0,tries:{},tags:{},passed:{},revealed:{},drafts:{},who:ST.who,t0:Date.now(),done:false};currentRendered=false;el('done').classList.add('hidden');startPlay();};
   el('relearn').onclick=()=>{el('done').classList.add('hidden');openLearn(0)};
@@ -938,6 +943,16 @@ function finish(){
 }
 /* ── 畫面切換 ── */
 function grabWho(){ST.who={n:el('f-name').value.trim(),c:el('f-cls').value.trim(),s:el('f-no').value.trim()};save();}
+/* ── 回首頁 ── */
+function goHome(){
+  try{if(!el('play').classList.contains('hidden')&&typeof saveDraft==='function')saveDraft();}catch(e){}
+  try{if(typeof flipStop==='function')flipStop();}catch(e){}
+  clearInterval(FT);FT=null;
+  ['learn','play','bar','done','topbar'].forEach(x=>{const n=el(x);if(n)n.classList.add('hidden')});
+  el('intro').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-gohome]'))goHome();});
 function openLearn(i){['intro','play','bar','done'].forEach(x=>el(x).classList.add('hidden'));el('topbar').classList.add('hidden');el('learn').classList.remove('hidden');showLearn(i||0);}
 function startPlay(){
   if(!ST.t0)ST.t0=Date.now();
