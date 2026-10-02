@@ -128,6 +128,15 @@ figcaption{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:
 /* 圖解教學 */
 .learn{max-width:980px;margin:0 auto}
 .lcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.learn-stage-controls{display:none}
+#learn-stage:fullscreen{width:100%;height:100%;padding:clamp(8px,1.2vw,20px);background:var(--ground);display:flex;flex-direction:column;gap:8px;overflow:hidden}
+#learn-stage:fullscreen .lcard{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column}
+#learn-stage:fullscreen .lbody{flex:1}
+#learn-stage:fullscreen .learn-stage-controls{display:flex;align-items:center;justify-content:center;gap:10px;flex:none}
+.learn-stage-controls button{border:1.5px solid var(--accent);border-radius:999px;background:var(--surface);color:var(--accent);padding:5px 14px;font-size:13px;font-weight:600;line-height:1.4;cursor:pointer}
+.learn-stage-controls button:hover{background:var(--accent);color:var(--accent-ink)}
+.learn-stage-controls button:disabled{opacity:.4;cursor:default;background:var(--surface);color:var(--accent)}
+@media (max-width:820px){#learn-stage:fullscreen .lbody{display:block}}
 .lhead{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
 .lhead .num{font-family:var(--mono);font-size:13px;color:var(--accent);border:1.5px solid var(--accent);border-radius:6px;padding:0 8px}
 .lhead h2{margin:0;font-family:var(--serif);font-size:23px;letter-spacing:.03em}
@@ -143,6 +152,7 @@ figcaption{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:
 .ltext b.k1{color:var(--g1)} .ltext b.k2{color:var(--accent)} .ltext b.k3{color:var(--g3)}
 .lnav{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
 .lhome{position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;margin-bottom:6px;background:var(--ground)}
+.lhome .home-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lhome .homebtn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--accent);color:var(--accent);border-radius:999px;padding:6px 16px;font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);transition:background .15s,color .15s}
 .lhome .homebtn:hover{background:var(--accent);color:var(--accent-ink)}
 .lhome .lhtitle{font-family:var(--mono);font-size:13px;color:var(--ink-3);letter-spacing:.04em}
@@ -357,8 +367,8 @@ table.sum td:first-child{text-align:center}
     </div>
   </section>
   <section id="learn" class="hidden"><div class="learn">
-    <div class="lhome"><button class="homebtn" type="button" data-gohome title="回到首頁">🏠 回首頁</button><span class="lhtitle">圖解教學</span></div>
-    <div class="lcard" id="lcard"></div>
+    <div class="lhome"><div class="home-actions"><button class="homebtn" type="button" data-gohome title="回到首頁">🏠 回首頁</button><button class="homebtn" type="button" id="learn-fullscreen" aria-pressed="false" title="將圖解教學網頁全螢幕播放">⛶ 全螢幕播放</button></div><span class="lhtitle">圖解教學</span></div>
+    <div id="learn-stage"><div class="lcard" id="lcard"></div><nav class="learn-stage-controls" aria-label="全螢幕圖解教學控制列"><button type="button" id="fs-prev">← 前一頁</button><button type="button" id="fs-next">下一頁 →</button><button type="button" id="fs-exit">退出全螢幕</button></nav></div>
     <div class="lnav">
       <button class="btn ghost" id="l-prev">← 上一張</button>
       <div class="dots" id="l-dots"></div>
@@ -620,6 +630,7 @@ let LI=0;
 function secOf(i){for(let j=i;j>=0;j--)if(LEARN[j].sec)return LEARN[j].sec;return 's1'}
 function showLearn(i){
   LI=i;const L=LEARN[i];clearInterval(FT);FT=null;
+  document.querySelectorAll('.lb').forEach(d=>d.remove());
   if(!L.fig&&L.set)L.fig=()=>flipBox(L.set)+(L.tb||[]).map(t=>tbImg(...t)).join('');
   const sc=secOf(i);
   el('lcard').innerHTML=`<div class="lhead"><span class="num">${String(i+1).padStart(2,'0')} / ${LEARN.length}</span><span class="lsec ${sc}">${SECN[sc]}</span><h2>${L.t}</h2><span class="src">${L.src}</span></div>
@@ -627,6 +638,8 @@ function showLearn(i){
   el('l-dots').innerHTML=LEARN.map((x,j)=>`<button class="${j===i?'on':''}" data-j="${j}" aria-label="第 ${j+1} 張：${x.t}" title="${x.t}">${j+1}</button>`).join('');
   el('l-dots').querySelectorAll('button').forEach(b=>b.onclick=()=>showLearn(+b.dataset.j));
   el('l-prev').disabled=i===0;
+  el('fs-prev').disabled=i===0;
+  el('fs-next').disabled=i===LEARN.length-1;
   el('l-next').textContent=i===LEARN.length-1?'開始闖關 →':'下一張 →';
   const a=el('ani');if(a)requestAnimationFrame(()=>a.classList.add('play'));
   const f=el('flip');if(f)flipInit(f.dataset.set);
@@ -635,7 +648,7 @@ function showLearn(i){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function bindZoom(root){root.querySelectorAll('img.zoomable').forEach(i=>i.onclick=()=>{
-  const d=document.createElement('div');d.className='lb';d.innerHTML=`<img src="${i.src}" alt="${i.alt}">`;d.onclick=()=>d.remove();document.body.appendChild(d);});}
+  const d=document.createElement('div');d.className='lb';d.innerHTML=`<img src="${i.src}" alt="${i.alt}">`;d.onclick=()=>d.remove();(document.fullscreenElement||document.body).appendChild(d);});}
 
 let FT=null,FI=0,FL=[],FPLAY=false,FA=0;
 function flipShow(i){FI=Math.max(0,Math.min(FL.length-1,i));el('fimg').src=IMG[FL[FI][0]];el('fno').textContent=`${FI+1} / ${FL.length}`;el('fcap').textContent=`${FI+1} / ${FL.length}　${FL[FI][1]}`;
@@ -985,6 +998,45 @@ el('go-show').onclick=()=>openShow(0);
   if(saved&&(saved.idx>0||Object.keys(saved.tries||{}).length||Object.keys(saved.drafts||{}).length)){
     ST=Object.assign(ST,saved);ST.idx=Math.max(0,Math.min(STAGES.length-1,ST.idx||0));el('f-name').value=ST.who.n||'';el('f-cls').value=ST.who.c||'';el('f-no').value=ST.who.s||'';
     el('go').textContent=`繼續闖關（第 ${ST.idx+1} 題）`;}
+})();
+</script>
+<script>
+/* 圖解教學卡全螢幕播放 */
+(()=>{
+  const stage=document.getElementById('learn-stage');
+  const trigger=document.getElementById('learn-fullscreen');
+  const prev=document.getElementById('fs-prev');
+  const next=document.getElementById('fs-next');
+  trigger.onclick=async()=>{
+    try{
+      if(document.fullscreenElement===stage)await document.exitFullscreen();
+      else await stage.requestFullscreen();
+    }catch(err){alert('瀏覽器無法進入全螢幕，請檢查全螢幕權限。');}
+  };
+  document.addEventListener('fullscreenchange',()=>{
+    const active=document.fullscreenElement===stage;
+    trigger.textContent=active?'⛶ 退出全螢幕':'⛶ 全螢幕播放';
+    trigger.setAttribute('aria-pressed',String(active));
+    trigger.title=active?'退出全螢幕播放':'將圖解教學網頁全螢幕播放';
+  });
+  prev.onclick=()=>LI>0&&showLearn(LI-1);
+  next.onclick=()=>LI<LEARN.length-1&&showLearn(LI+1);
+  document.getElementById('fs-exit').onclick=()=>document.exitFullscreen();
+  stage.addEventListener('contextmenu',e=>{
+    if(document.fullscreenElement!==stage)return;
+    e.preventDefault();
+    if(LI<LEARN.length-1)showLearn(LI+1);
+  });
+  document.addEventListener('keydown',e=>{
+    if(document.fullscreenElement!==stage)return;
+    if(e.key==='Escape'){e.preventDefault();document.exitFullscreen();return;}
+    if(e.altKey||e.ctrlKey||e.metaKey||e.isComposing||e.target.closest?.('input,textarea,select,[contenteditable]'))return;
+    if(['ArrowRight','ArrowDown','PageDown'].includes(e.key)||e.key===' '&&!e.target.closest?.('button,a')){
+      e.preventDefault();if(LI<LEARN.length-1)showLearn(LI+1);
+    }else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){
+      e.preventDefault();if(LI>0)showLearn(LI-1);
+    }
+  });
 })();
 </script>
 </body></html>
